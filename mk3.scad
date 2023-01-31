@@ -1,5 +1,6 @@
 zff = 1/32;
 drain_r = 10;
+drain_pipe_od_r = 26.6/2;
 thickness = 3.1;
 
 // This is the length of one bead and one bit of string.
@@ -72,15 +73,25 @@ module assembled() {
     translate([0,wt+bead_r*2+bead_clearance,thickness*2]) strip();
     translate([0,0,thickness*3]) cap();
 }
+
 pump_body_r = bead_chain_r+bead_r;
 module pump_body() {
+    cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
     difference() {
-        cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
-        translate([0,0,-zff]) cylinder(r=pump_body_r,h=thickness+2*zff);
+        translate([0,0,-zff+thickness]) cylinder(r=bead_chain_r+bead_r+wt,h=thickness*2);
+        translate([0,0,-zff+thickness]) cylinder(r=pump_body_r,h=thickness*2+2*zff);
+    }
+    translate([0,0,-zff+thickness*3]) cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
+    #translate([0,0,0]) difference() {
+        hull() {
+            translate([(bead_chain_r+bead_r+wt),-(bead_chain_r+bead_r+wt),0]) cube([thickness, (bead_chain_r+bead_r+wt)*2, thickness*4]);
+            cylinder(r=bead_chain_r+bead_r+wt,h=thickness*4);
+        }
+        translate([0,0, thickness*2]) rotate([0,90,0]) cylinder(r=drain_r, h=pump_length, $fn=16);
     }
 }
 
-// translate([0,thickness*2, thickness*2]) rotate([0,90,0]) #cylinder(r=drain_r, h=pump_length, $fn=16);
+// translate([0,0, thickness*2]) rotate([0,90,0]) #cylinder(r=drain_r, h=pump_length, $fn=16);
 translate([wt/2+pump_body_r,wt/2-(wt+bead_r*2+bead_clearance)/2+-bead_r,0]) assembled();
 translate([0,0,thickness]) render() bead_chain_gear_solid();
 translate([0,0,thickness*2]) render() bead_chain_gear_solid();
