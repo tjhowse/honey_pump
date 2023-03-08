@@ -1,6 +1,7 @@
-zff = 1/32;
+zff = 1/64;
 drain_r = 10;
-drain_pipe_od_r = 26.6/2;
+drain_pipe_or = 26.6/2;
+drain_pipe_ir = 21.6/2;
 thickness = 3.1;
 
 // This is the length of one bead and one bit of string.
@@ -63,9 +64,13 @@ module bead_chain_gear_solid() {
         translate([0,0,-50]) cylinder(r=shaft_r, h=100, $fn=32);
     }
 }
+module bead_chain_gear_flange() {
+    cylinder(r=bead_chain_r+bead_r/2, h=thickness);
+}
 
+drain_protrusion = 5;
 
-module assembled() {
+module lasercut_stalk() {
     cap();
     translate([0,0,thickness]) strip();
     translate([0,0,thickness*2]) strip();
@@ -75,26 +80,122 @@ module assembled() {
 }
 
 pump_body_r = bead_chain_r+bead_r;
-module pump_body() {
-    cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
+// This ensures the stackup is an integer thickness of acrylic.
+pump_face_plate_z_ideal = (drain_pipe_or+wt)*2;
+pump_face_plate_z = ceil(pump_face_plate_z_ideal/thickness)*thickness;
+
+// This is the part through which the drain pipe protrudes
+module pump_face_plate() {
     difference() {
-        translate([0,0,-zff+thickness]) cylinder(r=bead_chain_r+bead_r+wt,h=thickness*2);
-        translate([0,0,-zff+thickness]) cylinder(r=pump_body_r,h=thickness*2+2*zff);
-    }
-    translate([0,0,-zff+thickness*3]) cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
-    #translate([0,0,0]) difference() {
-        hull() {
-            translate([(bead_chain_r+bead_r+wt),-(bead_chain_r+bead_r+wt),0]) cube([thickness, (bead_chain_r+bead_r+wt)*2, thickness*4]);
-            cylinder(r=bead_chain_r+bead_r+wt,h=thickness*4);
-        }
-        translate([0,0, thickness*2]) rotate([0,90,0]) cylinder(r=drain_r, h=pump_length, $fn=16);
+        translate([0,-(bead_chain_r+bead_r+wt),0]) cube([thickness, (bead_chain_r+bead_r+wt)*2, pump_face_plate_z]);
+        translate([-drain_protrusion,0,pump_face_plate_z/2]) rotate([0,90,0]) cylinder(r=drain_pipe_or, h=100, $fn=32);
     }
 }
 
-// translate([0,0, thickness*2]) rotate([0,90,0]) #cylinder(r=drain_r, h=pump_length, $fn=16);
-translate([wt/2+pump_body_r,wt/2-(wt+bead_r*2+bead_clearance)/2+-bead_r,0]) assembled();
-translate([0,0,thickness]) render() bead_chain_gear_solid();
-translate([0,0,thickness*2]) render() bead_chain_gear_solid();
-pump_body();
-// vertical_bead_chain_segment();
-// bead_chain_gear(1,0);
+// This has a slightly smaller hole in it to block the drain pipe from coming in any further.
+module pump_face_plate_blocker(pipe_hole_r, offset) {
+    difference() {
+        translate([0,-(bead_chain_r+bead_r+wt),0]) cube([thickness, (bead_chain_r+bead_r+wt)*2, pump_face_plate_z]);
+        translate([-zff,0,pump_face_plate_z/2]) rotate([0,90,0]) {
+        difference() {
+            cylinder(r=drain_pipe_ir, h=100, $fn=32);
+            // #translate([-50,-drain_pipe_ir,0]) cube([100,drain_pipe_ir-bead_chain_tube_or,100]);
+            translate([0,offset,0]) cylinder(r=pipe_hole_r+wt, h=100, $fn=32);
+            // Awkwardly fillet the sharp corner around the bead chain pipe holder
+            translate([pipe_hole_r+wt,offset+pipe_hole_r/2,0]) difference() {
+                rotate([0,0,-30]) translate([-wt,-wt/2,0]) cube([wt*2,wt,thickness]);
+            }
+            translate([-(pipe_hole_r+wt),offset+pipe_hole_r/2,0]) difference() {
+                rotate([0,0,30]) translate([-wt,-wt/2,0]) cube([wt*2,wt,thickness]);
+            }
+        }
+        translate([0,offset,0]) cylinder(r=pipe_hole_r,h=100, $fn=16);
+        }
+    }
+}
+
+// This is the top and bottom parts of the pump body.
+module pump_body_base() {
+    translate([-thickness/2,0,0]) hull() {
+        translate([0,0,thickness/2]) cube([thickness, (bead_chain_r+bead_r+wt)*2, thickness],center=true);
+        translate([-(bead_chain_r+bead_r+wt)-drain_protrusion,0,0]) cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
+    }
+}
+
+// These parts are stacked up to form the walls of the body.
+module pump_body_wall() {
+    difference() {
+        pump_body_base();
+        hull() {
+            translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,0]) cylinder(r=bead_chain_r+bead_r,h=thickness);
+            translate([0,0,thickness/2]) cube([thickness, (bead_chain_r+bead_r)*2, thickness],center=true);
+        }
+    }
+}
+
+bead_chain_tube_or = 6.3/2;
+bead_chain_tube_ir = bead_chain_tube_or-0.77;
+module bead_chain_tube() {
+    rotate([0,90,0]) difference() {
+        cylinder(r=bead_chain_tube_or, h=600+zff*2, $fn=16);
+        translate([0,0,-zff]) cylinder(r=bead_chain_tube_ir, h=600, $fn=16);
+    }
+}
+
+module pump_face_plate_blocker_inner() {
+    pump_face_plate_blocker(bead_chain_tube_ir,-(drain_pipe_ir-bead_chain_tube_or));
+}
+module pump_face_plate_blocker_outer() {
+    pump_face_plate_blocker(bead_chain_tube_or,-(drain_pipe_ir-bead_chain_tube_or));
+}
+
+module assembled() {
+    // translate([0,0, thickness*2]) rotate([0,90,0]) #cylinder(r=drain_r, h=pump_length, $fn=16);
+    // translate([wt/2+pump_body_r,wt/2-(wt+bead_r*2+bead_clearance)/2+-bead_r,0]) lasercut_stalk();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*4]) render() bead_chain_gear_flange();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*5]) render() bead_chain_gear_solid();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*6]) render() bead_chain_gear_solid();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*7]) render() bead_chain_gear_flange();
+    // translate([0,0,thickness*2]) render() bead_chain_gear_solid();
+    pump_body_base();
+    translate([0,0,pump_face_plate_z-thickness]) pump_body_base();
+    translate([thickness*3,0,0]) pump_face_plate();
+    translate([thickness*2,0,0]) pump_face_plate();
+    pump_face_plate_blocker_inner();
+    translate([thickness,0,0]) pump_face_plate_blocker_outer();
+    translate([0,0,thickness]) pump_body_wall();
+    // translate([0,-(drain_pipe_ir-bead_chain_tube_or),pump_face_plate_z/2]) bead_chain_tube();
+    // vertical_bead_chain_segment();
+    // bead_chain_gear(1,0);
+}
+
+// projection() rotate([0,90,0]) pump_face_plate_blocker(bead_chain_tube_ir,-(drain_pipe_ir-bead_chain_tube_or));
+// projection() rotate([0,90,0]) pump_face_plate_blocker(bead_chain_tube_or,-(drain_pipe_ir-bead_chain_tube_or));
+
+batch_export=true;
+
+part_revision_number = 1;
+// These are load-bearing comments. The make script awks this file for
+// lines between these markers to determine what it needs to render to a file.
+// PARTSMARKERSTART
+export_bead_chain_gear_flange = false;
+export_bead_chain_gear_solid = false;
+export_pump_body_base = false;
+export_pump_face_plate = false;
+export_pump_face_plate_blocker_inner = false;
+export_pump_face_plate_blocker_outer = false;
+export_pump_body_wall = false;
+// PARTSMARKEREND
+
+if (batch_export) {
+    if (export_bead_chain_gear_flange) projection() bead_chain_gear_flange();
+    if (export_bead_chain_gear_solid) projection() bead_chain_gear_solid();
+    if (export_pump_body_base) projection() pump_body_base();
+    if (export_pump_face_plate) projection() rotate([0,90,0]) pump_face_plate();
+    if (export_pump_face_plate_blocker_inner) projection() rotate([0,90,0]) pump_face_plate_blocker_inner();
+    if (export_pump_face_plate_blocker_outer) projection() rotate([0,90,0]) pump_face_plate_blocker_outer();
+    if (export_pump_body_wall) projection() pump_body_wall();
+
+} else {
+    assembled();
+}
