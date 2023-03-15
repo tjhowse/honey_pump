@@ -165,10 +165,48 @@ module pump_face_plate_blocker_outer() {
     pump_face_plate_blocker(bead_chain_tube_or,-(drain_pipe_ir-bead_chain_tube_or));
 }
 
-module cord_guide () {
-
+// This holds the cord guide onto the end of the tube.
+module cord_guide_sleeve(hole_r) {
+    difference() {
+        hull() {
+            rotate([0,90,0]) cylinder(r=bead_chain_tube_or+wt, h=thickness, $fn=16);
+            translate([thickness/2,0,-bead_chain_tube_or-wt]) cube([thickness, (bead_chain_tube_or+wt)*2, 1],center=true);
+        }
+        translate([thickness/2,0,-bead_chain_tube_or-wt]) cube([thickness, (bead_chain_tube_or+wt)*2, wt*2],center=true);
+        translate([-zff,0,0]) rotate([0,90,0]) cylinder(r=hole_r, h=100, $fn=16);
+    }
 }
 
+module cord_guide_lip() {
+    lip_r = 2;
+
+    translate([-thickness,0,0]) difference () {
+        translate([0,thickness/2,-bead_chain_tube_ir-lip_r]) hull () {
+            rotate([90,0,0]) cylinder(r=lip_r, h=thickness,$fn=16);
+            translate([thickness*2,0,0]) rotate([90,0,0]) cylinder(r=lip_r, h=thickness,$fn=16);
+        }
+        translate([50,0,-bead_chain_tube_ir-(bead_chain_tube_or-bead_chain_tube_ir)/2]) cube([100, thickness, bead_chain_tube_or-bead_chain_tube_ir],center=true);
+    }
+}
+// !cord_guide_lip();
+
+module cord_guide_assembled () {
+    rotate([0,90,0]) difference() {
+        cylinder(r=bead_chain_tube_or, h=100, $fn=16);
+        translate([0,0,-zff]) cylinder(r=bead_chain_tube_ir, h=100+zff*2, $fn=16);
+    }
+    render() {
+        translate([thickness,0,0]) cord_guide_sleeve(bead_chain_tube_or);
+        translate([0,0,0]) cord_guide_sleeve(bead_chain_tube_or);
+        translate([-thickness,0,0]) cord_guide_sleeve(bead_chain_tube_ir);
+    }
+    translate([0,-thickness,0]) cord_guide_lip();
+    translate([0,0,0]) cord_guide_lip();
+    translate([0,thickness,0]) cord_guide_lip();
+}
+
+
+// TODO try to make this an odd number of slices thick so the gear can be centered on the pipe.
 module assembled() {
     // translate([0,0, thickness*2]) rotate([0,90,0]) #cylinder(r=drain_r, h=pump_length, $fn=16);
     // translate([wt/2+pump_body_r,wt/2-(wt+bead_r*2+bead_clearance)/2+-bead_r,0]) lasercut_stalk();
@@ -201,7 +239,7 @@ module assembled() {
 
 batch_export=false;
 
-part_revision_number = 3;
+part_revision_number = 4;
 // These are load-bearing comments. The make script awks this file for
 // lines between these markers to determine what it needs to render to a file.
 // PARTSMARKERSTART
@@ -213,6 +251,9 @@ export_pump_face_plate_blocker_inner = false;
 export_pump_face_plate_blocker_outer = false;
 export_pump_body_wall = false;
 export_pump_body_wall_cutout = false;
+export_cord_guide_sleeve = false;
+export_cord_guide_sleeve_blocker = false;
+export_cord_guide_lip = false;
 // PARTSMARKEREND
 
 if (batch_export) {
@@ -224,7 +265,11 @@ if (batch_export) {
     if (export_pump_face_plate_blocker_outer) projection() rotate([0,90,0]) pump_face_plate_blocker_outer();
     if (export_pump_body_wall) projection() pump_body_wall();
     if (export_pump_body_wall_cutout) projection() pump_body_wall_cutout();
+    if (export_cord_guide_sleeve) projection() rotate([0,90,0]) cord_guide_sleeve(bead_chain_tube_or);
+    if (export_cord_guide_sleeve_blocker) projection() rotate([0,90,0]) cord_guide_sleeve(bead_chain_tube_ir);
+    if (export_cord_guide_lip) projection() rotate([90,0,0]) cord_guide_lip();
 
 } else {
-    assembled();
+    // assembled();
+    cord_guide_assembled();
 }
