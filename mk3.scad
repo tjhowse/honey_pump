@@ -50,7 +50,7 @@ module vertical_bead_chain_segment() {
     translate([-bead_cord_r,-(bead_chain_straight_pitch-bead_r+bead_chain_extra_string),0]) cube([bead_cord_r*2,bead_chain_straight_pitch-bead_r+bead_chain_extra_string,100]);
 }
 
-bead_n = 16;
+bead_n = 12;
 bead_chain_r = bead_chain_straight_pitch/tan(360/bead_n);
 
 module bead_chain_gear_solid() {
@@ -62,13 +62,13 @@ module bead_chain_gear_solid() {
                 // rotate([0,0,i]) translate([bead_chain_r,0,0]) rotate([0,0,(-360/bead_n)/2]) vertical_bead_chain_segment();
             }
         }
-        translate([0,0,-50]) cylinder(r=shaft_r, h=100, $fn=32);
+        translate([0,0,-50]) cylinder(r=shaft_r, h=100, $fn=16);
     }
 }
 module bead_chain_gear_flange() {
     difference () {
         cylinder(r=bead_chain_r+bead_r/2, h=thickness);
-        cylinder(r=shaft_r, h=thickness, $fn=32);
+        cylinder(r=shaft_r, h=thickness, $fn=16);
     }
 }
 
@@ -125,7 +125,7 @@ module pump_body_base() {
             translate([0,0,thickness/2]) cube([thickness, (bead_chain_r+bead_r+wt)*2, thickness],center=true);
             translate([-(bead_chain_r+bead_r+wt)-drain_protrusion,0,0]) cylinder(r=bead_chain_r+bead_r+wt,h=thickness);
         }
-        translate([-(bead_chain_r+bead_r+wt)-drain_protrusion,0,0]) cylinder(r=shaft_r,h=thickness);
+        translate([-(bead_chain_r+bead_r+wt)-drain_protrusion,0,0]) cylinder(r=shaft_r,h=thickness, $fn=32);
     }
 }
 
@@ -205,15 +205,25 @@ module cord_guide_assembled () {
     translate([0,thickness,0]) cord_guide_lip();
 }
 
+module washer() {
+    difference () {
+        cylinder(r=shaft_r+wt, h=thickness, $fn=32);
+        translate([0,0,-zff]) cylinder(r=shaft_r+0.2, h=thickness+zff*2, $fn=32);
+    }
+}
 
 // TODO try to make this an odd number of slices thick so the gear can be centered on the pipe.
 module assembled() {
     // translate([0,0, thickness*2]) rotate([0,90,0]) #cylinder(r=drain_r, h=pump_length, $fn=16);
     // translate([wt/2+pump_body_r,wt/2-(wt+bead_r*2+bead_clearance)/2+-bead_r,0]) lasercut_stalk();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*1.5]) render() washer();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*2.5]) render() washer();
     translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*3.5]) render() bead_chain_gear_flange();
     translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*4.5]) render() bead_chain_gear_solid();
     translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*5.5]) render() bead_chain_gear_solid();
     translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*6.5]) render() bead_chain_gear_flange();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*7.5]) render() washer();
+    translate([-(bead_chain_r+bead_r+wt)-drain_protrusion-thickness/2,0,thickness*8.5]) render() washer();
     // translate([0,0,thickness*2]) render() bead_chain_gear_solid();
     pump_body_base();
     // translate([0,0,pump_face_plate_z-thickness]) pump_body_base();
@@ -239,7 +249,7 @@ module assembled() {
 
 batch_export=false;
 
-part_revision_number = 4;
+part_revision_number = 5;
 // These are load-bearing comments. The make script awks this file for
 // lines between these markers to determine what it needs to render to a file.
 // PARTSMARKERSTART
@@ -254,6 +264,7 @@ export_pump_body_wall_cutout = false;
 export_cord_guide_sleeve = false;
 export_cord_guide_sleeve_blocker = false;
 export_cord_guide_lip = false;
+export_washer = false;
 // PARTSMARKEREND
 
 if (batch_export) {
@@ -268,8 +279,10 @@ if (batch_export) {
     if (export_cord_guide_sleeve) projection() rotate([0,90,0]) cord_guide_sleeve(bead_chain_tube_or);
     if (export_cord_guide_sleeve_blocker) projection() rotate([0,90,0]) cord_guide_sleeve(bead_chain_tube_ir);
     if (export_cord_guide_lip) projection() rotate([90,0,0]) cord_guide_lip();
+    if (export_washer) projection() washer();
 
 } else {
-    // assembled();
-    cord_guide_assembled();
+    assembled();
+    // cord_guide_assembled();
+    // bead_chain_gear_solid();
 }
