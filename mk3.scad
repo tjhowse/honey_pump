@@ -87,11 +87,12 @@ pump_body_r = bead_chain_r+bead_r;
 // This ensures the stackup is an integer thickness of acrylic.
 pump_face_plate_z_ideal = (drain_pipe_or+wt)*2;
 pump_face_plate_z = ceil(pump_face_plate_z_ideal/thickness)*thickness;
+pump_face_plate_y = (bead_chain_r+bead_r+wt)*2;
 
 // This is the part through which the drain pipe protrudes
 module pump_face_plate() {
     difference() {
-        translate([0,-(bead_chain_r+bead_r+wt),0]) cube([thickness, (bead_chain_r+bead_r+wt)*2, pump_face_plate_z]);
+        translate([0,-(bead_chain_r+bead_r+wt),0]) cube([thickness, pump_face_plate_y, pump_face_plate_z]);
         translate([-drain_protrusion,0,pump_face_plate_z/2]) rotate([0,90,0]) cylinder(r=drain_pipe_or, h=100, $fn=32);
     }
 }
@@ -282,7 +283,8 @@ if (batch_export) {
     if (export_washer) projection() washer();
 
 } else {
-    assembled();
+    // assembled();
+    // assembled_printable();
     // cord_guide_assembled();
     // bead_chain_gear_solid();
 }
