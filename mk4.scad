@@ -9,6 +9,7 @@ drain_socket_x = 15+drain_socket_shelf_x;
 bead_tube_socket_shelf = wt;
 bead_tube_socket_x = 5+bead_tube_socket_shelf;
 bead_chain_tube_socket_x = 6;
+wt = 3;
 
 
 module drain_pipe_and_shelf(bead_pipe=false) {
@@ -33,6 +34,15 @@ module drain_pipe_and_shelf(bead_pipe=false) {
 
 // !drain_pipe_and_shelf(true);
 
+bolt_r=1.5;
+
+module bolt_hole() {
+    difference () {
+        cylinder(r=wt+bolt_r, h=body_height, $fn=16);
+        cylinder(r=bolt_r, h=body_height, $fn=16);
+    }
+}
+
 module printable() {
     difference () {
         union() {
@@ -51,10 +61,16 @@ module printable() {
             translate([sprocket_r,-sprocket_r,0])
                 cube([wt+drain_pipe_or, (sprocket_r)*2, body_height]);
         }
+        // This is the cutout for the shaft
+        cylinder(r=shaft_r, h=body_height, $fn=64);
 
         translate([sprocket_r+wt,drain_pipe_or,body_height/2]) rotate([-90,0,0]) drain_pipe_and_shelf();
         translate([sprocket_r+wt+drain_pipe_or,0,body_height/2]) rotate([0,90,0]) drain_pipe_and_shelf(true);
     }
+    translate([-bolt_r, drain_pipe_or+wt+bolt_r,0]) bolt_hole();
+    translate([-bolt_r, -(drain_pipe_or+wt+bolt_r),0]) bolt_hole();
+    translate([sprocket_r+wt+drain_pipe_or+(drain_socket_x+bead_tube_socket_x)/2+wt, drain_pipe_or+wt+bolt_r,0]) bolt_hole();
+    translate([sprocket_r+wt+drain_pipe_or+(drain_socket_x+bead_tube_socket_x)/2+wt, -(drain_pipe_or+wt+bolt_r),0]) bolt_hole();
 }
 
 intersection() {
